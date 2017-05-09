@@ -322,6 +322,12 @@ public class ContactsProvider {
             }
             contact.putArray("postalAddresses", postalAddresses);
 
+            WritableMap contactDataMap = Arguments.createMap();
+            contactDataMap.putInt("timesContacted", contactData.timesContacted);
+            contactDataMap.putInt("starred", contactData.starred);
+            contactDataMap.putDouble("lastTimeContacted", contactData.lastTimeContacted);
+            contact.putMap("contactData", contactDataMap);
+
             return contact;
         }
 
