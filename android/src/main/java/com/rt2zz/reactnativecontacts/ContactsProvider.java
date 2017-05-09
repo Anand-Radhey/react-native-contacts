@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+
 import static android.provider.ContactsContract.CommonDataKinds.Contactables;
 import static android.provider.ContactsContract.CommonDataKinds.Email;
 import static android.provider.ContactsContract.CommonDataKinds.Organization;
@@ -29,6 +30,10 @@ public class ContactsProvider {
         add(ContactsContract.Data.CONTACT_ID);
         add(ContactsContract.Data.LOOKUP_KEY);
         add(ContactsContract.Contacts.Data.MIMETYPE);
+        add(ContactsContract.Contacts.TIMES_CONTACTED);
+        add(ContactsContract.Contacts.LAST_TIME_CONTACTED);
+        add(ContactsContract.Contacts.CONTACT_STATUS_RES_PACKAGE);
+        add(ContactsContract.Contacts.STARRED);
         add(ContactsContract.Profile.DISPLAY_NAME);
         add(Contactables.PHOTO_URI);
         add(StructuredName.DISPLAY_NAME);
@@ -179,7 +184,7 @@ public class ContactsProvider {
                 contact.displayName = name;
             }
 
-            if(TextUtils.isEmpty(contact.photoUri)) {
+            if (TextUtils.isEmpty(contact.photoUri)) {
                 String rawPhotoURI = cursor.getString(cursor.getColumnIndex(Contactables.PHOTO_URI));
                 if (!TextUtils.isEmpty(rawPhotoURI)) {
                     contact.photoUri = rawPhotoURI;
@@ -249,6 +254,10 @@ public class ContactsProvider {
             } else if (mimeType.equals(StructuredPostal.CONTENT_ITEM_TYPE)) {
                 contact.postalAddresses.add(new Contact.PostalAddressItem(cursor));
             }
+
+            contact.contactData.starred = cursor.getInt(cursor.getColumnIndex(ContactsContract.Contacts.STARRED));
+            contact.contactData.timesContacted = cursor.getInt(cursor.getColumnIndex(ContactsContract.Contacts.TIMES_CONTACTED));
+            contact.contactData.lastTimeContacted = cursor.getLong(cursor.getColumnIndex(ContactsContract.Contacts.LAST_TIME_CONTACTED));
         }
 
         return map;
@@ -277,6 +286,12 @@ public class ContactsProvider {
         return null;
     }
 
+    private static class ContactData {
+        private int starred = 0;
+        private int timesContacted = 0;
+        private long lastTimeContacted = 0;
+    }
+
     private static class Contact {
         private String contactId;
         private String displayName;
@@ -286,13 +301,14 @@ public class ContactsProvider {
         private String prefix = "";
         private String suffix = "";
         private String company = "";
-        private String jobTitle ="";
-        private String department ="";
+        private String jobTitle = "";
+        private String department = "";
         private boolean hasPhoto = false;
         private String photoUri;
         private List<Item> emails = new ArrayList<>();
         private List<Item> phones = new ArrayList<>();
         private List<PostalAddressItem> postalAddresses = new ArrayList<>();
+        private ContactData contactData = new ContactData();
 
         public Contact(String contactId) {
             this.contactId = contactId;
@@ -332,7 +348,7 @@ public class ContactsProvider {
 
             WritableArray postalAddresses = Arguments.createArray();
             for (PostalAddressItem item : this.postalAddresses) {
-              postalAddresses.pushMap(item.map);
+                postalAddresses.pushMap(item.map);
             }
             contact.putArray("postalAddresses", postalAddresses);
 
@@ -369,7 +385,7 @@ public class ContactsProvider {
             private void putString(Cursor cursor, String key, String androidKey) {
                 final String value = cursor.getString(cursor.getColumnIndex(androidKey));
                 if (!TextUtils.isEmpty(value))
-                  map.putString(key, value);
+                    map.putString(key, value);
             }
 
             static String getLabel(Cursor cursor) {
