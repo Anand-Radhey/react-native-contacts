@@ -11,12 +11,15 @@ import android.provider.ContactsContract.CommonDataKinds.Organization;
 import android.provider.ContactsContract.CommonDataKinds.StructuredName;
 import android.provider.ContactsContract.RawContacts;
 
+import android.util.Log;
 import com.facebook.react.bridge.Callback;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.bridge.ReadableArray;
 import com.facebook.react.bridge.ReadableMap;
+import com.facebook.react.bridge.WritableMap;
+import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.WritableArray;
 
 import java.util.ArrayList;
@@ -55,13 +58,22 @@ public class ContactsManager extends ReactContextBaseJavaModule {
         AsyncTask.execute(new Runnable() {
             @Override
             public void run() {
-                Context context = getReactApplicationContext();
-                ContentResolver cr = context.getContentResolver();
+                try {
+                    Context context = getReactApplicationContext();
+                    ContentResolver cr = context.getContentResolver();
 
-                ContactsProvider contactsProvider = new ContactsProvider(cr);
-                WritableArray contacts = contactsProvider.getContacts();
+                    ContactsProvider contactsProvider = new ContactsProvider(cr);
+                    WritableArray contacts = contactsProvider.getContacts();
 
-                callback.invoke(null, contacts);
+                    callback.invoke(null, contacts);
+                } catch (Exception e) {
+                    String stackTraceString = Log.getStackTraceString(e);
+                    WritableMap map = Arguments.createMap();
+                    map.putString("type", "exception");
+                    map.putString("message", "Exception in getAllContacts" + '\n' + stackTraceString);
+
+                    callback.invoke(map, null);
+                }
             }
         });
     }
