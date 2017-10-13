@@ -49,7 +49,7 @@ public class ContactsManager extends ReactContextBaseJavaModule {
     /**
      * Retrieves contacts.
      * Uses raw URI when <code>rawUri</code> is <code>true</code>, makes assets copy otherwise.
-     * @param callback callback
+     * @param callback user provided callback to run at completion
      */
     private void getAllContacts(final Callback callback) {
         AsyncTask.execute(new Runnable() {
@@ -60,6 +60,33 @@ public class ContactsManager extends ReactContextBaseJavaModule {
 
                 ContactsProvider contactsProvider = new ContactsProvider(cr);
                 WritableArray contacts = contactsProvider.getContacts();
+
+                callback.invoke(null, contacts);
+            }
+        });
+    }
+
+    /*
+     * Returns all contacts matching string
+     */
+    @ReactMethod
+    public void getContactsMatchingString(final String searchString, final Callback callback) {
+        getAllContactsMatchingString(searchString, callback);
+    }
+    /**
+     * Retrieves contacts matching String.
+     * Uses raw URI when <code>rawUri</code> is <code>true</code>, makes assets copy otherwise.
+     * @param searchString String to match
+     * @param callback user provided callback to run at completion
+     */
+    private void getAllContactsMatchingString(final String searchString, final Callback callback) {
+        AsyncTask.execute(new Runnable() {
+            @Override
+            public void run() {
+                Context context = getReactApplicationContext();
+                ContentResolver cr = context.getContentResolver();
+                ContactsProvider contactsProvider = new ContactsProvider(cr);
+                WritableArray contacts = contactsProvider.getContactsMatchingString(searchString);
 
                 callback.invoke(null, contacts);
             }
@@ -180,6 +207,25 @@ public class ContactsManager extends ReactContextBaseJavaModule {
                     .withValue(CommonDataKinds.Email.ADDRESS, emails[i])
                     .withValue(CommonDataKinds.Email.TYPE, emailsLabels[i]);
             ops.add(op.build());
+        }
+
+        ReadableArray postalAddresses = contact.hasKey("postalAddresses") ? contact.getArray("postalAddresses") : null;
+        if (postalAddresses != null) {
+            for (int i = 0; i <  postalAddresses.size() ; i++) {
+                ReadableMap address = postalAddresses.getMap(i);
+
+                op = ContentProviderOperation.newInsert(ContactsContract.Data.CONTENT_URI)
+                        .withValueBackReference(ContactsContract.Data.RAW_CONTACT_ID, 0)
+                        .withValue(ContactsContract.Data.MIMETYPE, CommonDataKinds.StructuredPostal.CONTENT_ITEM_TYPE)
+                        .withValue(CommonDataKinds.StructuredPostal.TYPE, mapStringToPostalAddressType(address.getString("label")))
+                        .withValue(CommonDataKinds.StructuredPostal.STREET, address.getString("street"))
+                        .withValue(CommonDataKinds.StructuredPostal.CITY, address.getString("city"))
+                        .withValue(CommonDataKinds.StructuredPostal.REGION, address.getString("state"))
+                        .withValue(CommonDataKinds.StructuredPostal.POSTCODE, address.getString("postCode"))
+                        .withValue(CommonDataKinds.StructuredPostal.COUNTRY, address.getString("country"));
+
+                ops.add(op.build());
+            }
         }
 
         Context ctx = getReactApplicationContext();
@@ -367,6 +413,22 @@ public class ContactsManager extends ReactContextBaseJavaModule {
                 break;
         }
         return emailType;
+    }
+
+    private int mapStringToPostalAddressType(String label) {
+        int postalAddressType;
+        switch (label) {
+            case "home":
+                postalAddressType = CommonDataKinds.StructuredPostal.TYPE_HOME;
+                break;
+            case "work":
+                postalAddressType = CommonDataKinds.StructuredPostal.TYPE_WORK;
+                break;
+            default:
+                postalAddressType = CommonDataKinds.StructuredPostal.TYPE_OTHER;
+                break;
+        }
+        return postalAddressType;
     }
 
     @Override

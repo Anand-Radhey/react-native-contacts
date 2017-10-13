@@ -75,6 +75,33 @@ public class ContactsProvider {
         this.contentResolver = contentResolver;
     }
 
+    public WritableArray getContactsMatchingString(String searchString) {
+        Map<String, Contact> matchingContacts;
+        {
+            Cursor cursor = contentResolver.query(
+                    ContactsContract.Data.CONTENT_URI,
+                    FULL_PROJECTION.toArray(new String[FULL_PROJECTION.size()]),
+                    ContactsContract.Contacts.DISPLAY_NAME_PRIMARY + " LIKE ?",
+                    new String[]{"%" + searchString + "%"},
+                    null
+            );
+
+            try {
+                matchingContacts = loadContactsFrom(cursor);
+            } finally {
+                if (cursor != null) {
+                    cursor.close();
+                }
+            }
+        }
+
+        WritableArray contacts = Arguments.createArray();
+        for (Contact contact : matchingContacts.values()) {
+            contacts.pushMap(contact.toMap());
+        }
+        return contacts;
+    }
+
     public WritableArray getContacts() {
         Map<String, Contact> justMe;
         {
@@ -354,6 +381,7 @@ public class ContactsProvider {
                 putString(cursor, "neighborhood", StructuredPostal.NEIGHBORHOOD);
                 putString(cursor, "city", StructuredPostal.CITY);
                 putString(cursor, "region", StructuredPostal.REGION);
+                putString(cursor, "state", StructuredPostal.REGION);
                 putString(cursor, "postCode", StructuredPostal.POSTCODE);
                 putString(cursor, "country", StructuredPostal.COUNTRY);
             }
